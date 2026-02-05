@@ -1,24 +1,32 @@
-import logo from './logo.svg';
-import './App.css';
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
+import OrgSelect from "./pages/OrgSelect";
+import TemplateList from "./pages/TemplateList";
+import TemplateCreateEdit from "./pages/TemplateCreateEdit";
+import TemplatePreview from "./pages/TemplatePreview";
 
 function App() {
+  const { user, activeOrg } = useAuth();
+
+  // Non-super-admin must select org
+  if (!user?.is_super_admin && !activeOrg) {
+    return <OrgSelect />;
+  }
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <BrowserRouter>
+      <div className="container mt-4">
+        <Routes>
+          <Route path="/" element={<TemplateList />} />
+          <Route path="/templates/create" element={<TemplateCreateEdit />} />
+          <Route path="/templates/:id/edit" element={<TemplateCreateEdit />} />
+          <Route path="*" element={<Navigate to="/" />} />
+          <Route path="/templates/:id/preview"element={<TemplatePreview />}
+/>
+
+        </Routes>
+      </div>
+    </BrowserRouter>
   );
 }
 
