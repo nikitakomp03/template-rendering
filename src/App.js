@@ -1,31 +1,58 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
+import AppLayout from "./components/layout/AppLayout";
+
 import OrgSelect from "./pages/OrgSelect";
 import TemplateList from "./pages/TemplateList";
 import TemplateCreateEdit from "./pages/TemplateCreateEdit";
 import TemplatePreview from "./pages/TemplatePreview";
+import UserList from "./pages/UserList";
 
 function App() {
-  const { user, activeOrg } = useAuth();
+  const { user, activeOrg, isSystem, isAdmin } = useAuth();
 
-  // Non-super-admin must select org
-  if (!user?.is_super_admin && !activeOrg) {
+  // Non-system users must select org
+  if (!isSystem && !activeOrg) {
     return <OrgSelect />;
   }
 
   return (
     <BrowserRouter>
-      <div className="container mt-4">
+      <AppLayout>
         <Routes>
-          <Route path="/" element={<TemplateList />} />
-          <Route path="/templates/create" element={<TemplateCreateEdit />} />
-          <Route path="/templates/:id/edit" element={<TemplateCreateEdit />} />
-          <Route path="*" element={<Navigate to="/" />} />
-          <Route path="/templates/:id/preview"element={<TemplatePreview />}
-/>
+          {/* Redirect root */}
+          <Route path="/" element={<Navigate to="/templates" />} />
 
+          {/* Templates */}
+          <Route path="/templates" element={<TemplateList />} />
+          <Route
+            path="/templates/:id/preview"
+            element={<TemplatePreview />}
+          />
+
+          {/* Create / Edit – SYSTEM & ADMIN only */}
+          {(isSystem || isAdmin) && (
+            <>
+              <Route
+                path="/templates/create"
+                element={<TemplateCreateEdit />}
+              />
+              <Route
+                path="/templates/:id/edit"
+                element={<TemplateCreateEdit />}
+              />
+            </>
+          )}
+
+          {/* Users – SYSTEM & ADMIN only */}
+          {(isSystem || isAdmin) && (
+            <Route path="/users" element={<UserList />} />
+          )}
+
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/templates" />} />
         </Routes>
-      </div>
+      </AppLayout>
     </BrowserRouter>
   );
 }

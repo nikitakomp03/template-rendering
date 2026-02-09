@@ -1,26 +1,27 @@
-export function isSuperAdmin(user) {
-  return user?.is_super_admin === true;
+export const SCOPES = {
+  SYSTEM: "SYSTEM",
+  ORG: "ORG",
+  USER: "USER",
+};
+
+export function canViewTemplate(user, template) {
+  return true; // everyone can view
 }
 
-export function isOrgAdmin(activeOrg) {
-  if (!activeOrg) return false;
-  return activeOrg.roles?.includes("ADMIN");
-}
+export function canEditTemplate(user, template, activeOrg) {
+  if (user.is_super_admin) return true;
 
-export function canCreateTemplate(user, activeOrg) {
-  if (isSuperAdmin(user)) return true;
-  if (isOrgAdmin(activeOrg)) return true;
-  return false;
-}
-
-export function canEditTemplate(user, activeOrg, template) {
-  if (isSuperAdmin(user)) {
-    return template.scope_type === "SYSTEM";
+  if (template.scope === SCOPES.ORG) {
+    return template.org_id === activeOrg?.id && user.role === "ORG_ADMIN";
   }
 
-  if (isOrgAdmin(activeOrg)) {
-    return ["ORG", "ROLE", "USER"].includes(template.scope_type);
+  if (template.scope === SCOPES.USER) {
+    return template.created_by === user.id;
   }
 
-  return false;
+  return false; // SYSTEM templates non-super-admin
+}
+
+export function canCreateTemplate(user) {
+  return user.is_super_admin || user.role === "ORG_ADMIN";
 }

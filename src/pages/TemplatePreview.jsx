@@ -1,224 +1,118 @@
-import React, { useEffect, useState } from "react";
-import {
-  Card,
-  Col,
-  Form,
-  Row,
-  Button,
-  Alert,
-  Spinner,
-  Badge,
-} from "react-bootstrap";
+import { useParams, Link } from "react-router-dom";
 
-/**
- * MOCK DATA
- * Later backend will provide:
- * - template_type
- * - variable schema
- */
-const mockTemplate = {
-  id: 1,
-  type: "EMAIL", // EMAIL | SMS | PUSH
-};
-
-const mockSchema = {
-  employee_name: {
-    type: "string",
-    required: true,
-    default: "",
+const mockTemplates = [
+  {
+    id: "1",
+    name: "Welcome Email",
+    key: "WELCOME_EMAIL",
+    type: "EMAIL",
+    scope: "SYSTEM",
+    status: "ACTIVE",
+    subject: "Welcome to our platform",
+    content: `
+      <p>Hello <b>{{user_name}}</b>,</p>
+      <p>Welcome to our platform. We are glad to have you.</p>
+      <p>Thanks,<br/>Team</p>
+    `,
   },
-  invoice_id: {
-    type: "string",
-    required: true,
+  {
+    id: "2",
+    name: "OTP SMS",
+    key: "OTP_SMS",
+    type: "SMS",
+    scope: "ORG",
+    status: "ACTIVE",
+    content: "Your OTP is {{otp}}",
   },
-  is_paid: {
-    type: "boolean",
-    required: false,
-    default: false,
-  },
-};
+];
 
-function TemplatePreview() {
-  const [context, setContext] = useState({});
-  const [errors, setErrors] = useState({});
-  const [renderedOutput, setRenderedOutput] = useState(null);
-  const [apiError, setApiError] = useState(null);
-  const [loading, setLoading] = useState(false);
+export default function TemplatePreview() {
+  const { id } = useParams();
 
-  useEffect(() => {
-    const initial = {};
-    Object.entries(mockSchema).forEach(([key, config]) => {
-      initial[key] = config.default ?? "";
-    });
-    setContext(initial);
-  }, []);
+  // later → replace with API call
+  const template = mockTemplates.find((t) => t.id === id);
 
-  const handleChange = (key, value) => {
-    setContext({ ...context, [key]: value });
-    setErrors({ ...errors, [key]: null });
-  };
-
-  const validate = () => {
-    const newErrors = {};
-    Object.entries(mockSchema).forEach(([key, config]) => {
-      if (config.required && !context[key]) {
-        newErrors[key] = "This field is required";
-      }
-    });
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleRender = async () => {
-    setApiError(null);
-    if (!validate()) return;
-
-    setLoading(true);
-
-    try {
-      // Simulated API delay
-      await new Promise((r) => setTimeout(r, 800));
-
-      // Mock rendered response (backend responsibility later)
-      if (mockTemplate.type === "EMAIL") {
-        setRenderedOutput({
-          subject: `Invoice ${context.invoice_id}`,
-          body: `
-            <p>Hello <strong>${context.employee_name}</strong>,</p>
-            <p>Your invoice <b>${context.invoice_id}</b> is 
-            <b>${context.is_paid ? "paid" : "pending"}</b>.</p>
-          `,
-        });
-      } else {
-        setRenderedOutput(
-          `Invoice ${context.invoice_id} is ${
-            context.is_paid ? "paid" : "pending"
-          }`
-        );
-      }
-    } catch {
-      setApiError("Render failed. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const isRenderDisabled =
-    loading ||
-    Object.entries(mockSchema).some(
-      ([key, config]) => config.required && !context[key]
+  if (!template) {
+    return (
+      <div className="container py-4">
+        <div className="alert alert-danger">Template not found</div>
+        <Link to="/" className="btn btn-outline-secondary mt-3">
+          ← Back to Templates
+        </Link>
+      </div>
     );
+  }
 
   return (
-    <Row>
-      {/* LEFT PANEL */}
-      <Col md={5}>
-        <Card>
-          <Card.Body>
-            <h5 className="mb-3">
-              Template Variables{" "}
-              <Badge bg="secondary">{mockTemplate.type}</Badge>
-            </h5>
+    <div className="container py-4">
+      {/* Header */}
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2 className="fw-bold">Template Preview</h2>
+        <Link to="/" className="btn btn-outline-secondary">
+          ← Back
+        </Link>
+      </div>
 
-            {Object.entries(mockSchema).map(([key, config]) => (
-              <Form.Group className="mb-3" key={key}>
-                <Form.Label>
-                  {key}
-                  {config.required && (
-                    <span className="text-danger ms-1">*</span>
-                  )}
-                </Form.Label>
+      {/* Meta Info */}
+      <div className="card mb-4 shadow-sm">
+        <div className="card-body">
+          <div className="row g-3">
+            <div className="col-md-4">
+              <div className="text-muted small">Template Name</div>
+              <div className="fw-semibold">{template.name}</div>
+            </div>
 
-                {config.type === "string" && (
-                  <Form.Control
-                    value={context[key]}
-                    onChange={(e) =>
-                      handleChange(key, e.target.value)
-                    }
-                    isInvalid={!!errors[key]}
-                  />
-                )}
+            <div className="col-md-4">
+              <div className="text-muted small">Template Key</div>
+              <div className="fw-semibold">{template.key}</div>
+            </div>
 
-                {config.type === "boolean" && (
-                  <Form.Check
-                    type="switch"
-                    checked={context[key]}
-                    onChange={(e) =>
-                      handleChange(key, e.target.checked)
-                    }
-                  />
-                )}
+            <div className="col-md-2">
+              <div className="text-muted small">Type</div>
+              <span className="badge bg-primary-subtle text-primary">
+                {template.type}
+              </span>
+            </div>
 
-                {errors[key] && (
-                  <div className="text-danger small">
-                    {errors[key]}
-                  </div>
-                )}
-              </Form.Group>
-            ))}
+            <div className="col-md-2">
+              <div className="text-muted small">Scope</div>
+              <span className="badge bg-secondary-subtle text-secondary">
+                {template.scope}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
 
-            <Button
-              onClick={handleRender}
-              disabled={isRenderDisabled}
-            >
-              {loading ? (
-                <>
-                  <Spinner size="sm" /> Rendering...
-                </>
-              ) : (
-                "Render Preview"
-              )}
-            </Button>
-          </Card.Body>
-        </Card>
-      </Col>
+      {/* Preview */}
+      <div className="card shadow-sm">
+        <div className="card-header bg-light fw-semibold">
+          Preview Output
+        </div>
 
-      {/* RIGHT PANEL */}
-      <Col md={7}>
-        <Card>
-          <Card.Body>
-            <h5 className="mb-3">Rendered Output</h5>
+        <div className="card-body">
+          {template.type === "EMAIL" && (
+            <>
+              <div className="mb-3">
+                <div className="text-muted small">Subject</div>
+                <div className="fw-semibold">{template.subject}</div>
+              </div>
 
-            {apiError && (
-              <Alert variant="danger">{apiError}</Alert>
-            )}
+              <div
+                className="border rounded p-3 bg-white"
+                dangerouslySetInnerHTML={{ __html: template.content }}
+              />
+            </>
+          )}
 
-            {!renderedOutput ? (
-              <Alert variant="secondary">
-                Fill variables and click Render
-              </Alert>
-            ) : mockTemplate.type === "EMAIL" ? (
-              <>
-                <h6>Subject</h6>
-                <div className="border p-2 mb-3">
-                  {renderedOutput.subject}
-                </div>
-
-                <h6>Body</h6>
-                <div
-                  className="border p-3"
-                  dangerouslySetInnerHTML={{
-                    __html: renderedOutput.body,
-                  }}
-                />
-              </>
-            ) : (
-              <>
-                <pre className="bg-light p-3">
-                  {renderedOutput}
-                </pre>
-                <small className="text-muted">
-                  Characters: {renderedOutput.length}
-                </small>
-              </>
-            )}
-          </Card.Body>
-        </Card>
-      </Col>
-    </Row>
+          {template.type !== "EMAIL" && (
+            <pre className="bg-light p-3 rounded mb-0">
+              {template.content}
+            </pre>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
-
-export default TemplatePreview;
-
 

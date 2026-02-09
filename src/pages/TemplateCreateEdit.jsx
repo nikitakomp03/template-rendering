@@ -1,153 +1,167 @@
-import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Badge, Button, Card, Form } from "react-bootstrap";
 import { useAuth } from "../context/AuthContext";
+import { useState } from "react";
 
-const mockTemplate = {
-  id: 1,
-  name: "Welcome Email",
-  key: "WELCOME_EMAIL",
-  type: "EMAIL",
-  scope: "SYSTEM",
+export const SCOPES = {
+  SYSTEM: "SYSTEM",
+  ORG: "ORG",
+  USER: "USER",
 };
+
+const mockTemplates = [
+  {
+    id: "1",
+    name: "Welcome Email",
+    key: "WELCOME_EMAIL",
+    type: "EMAIL",
+    scope: SCOPES.SYSTEM,
+    status: "ACTIVE",
+    content: "<h1>Welcome {{name}}</h1>",
+  },
+  {
+    id: "2",
+    name: "Reset Password",
+    key: "RESET_PASSWORD",
+    type: "EMAIL",
+    scope: SCOPES.ORG,
+    status: "ACTIVE",
+    content: "<p>Reset link: {{link}}</p>",
+  },
+];
 
 function TemplateCreateEdit() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const isEditMode = Boolean(id);
+  const isEdit = Boolean(id);
+  const template = isEdit
+    ? mockTemplates.find((t) => t.id === id)
+    : null;
 
-  const [form, setForm] = useState({
-    name: "",
-    key: "",
-    type: "",
-    scope: "",
-  });
+  // ✅ ALL HOOKS FIRST (NO CONDITIONS ABOVE THIS)
+  const [name, setName] = useState(template?.name || "");
+  const [key, setKey] = useState(template?.key || "");
+  const [type, setType] = useState(template?.type || "EMAIL");
+  const [scope, setScope] = useState(template?.scope || SCOPES.ORG);
+  const [content, setContent] = useState(template?.content || "");
 
-  useEffect(() => {
-    if (isEditMode) {
-      // Later: fetch template by ID
-      setForm({
-        name: mockTemplate.name,
-        key: mockTemplate.key,
-        type: mockTemplate.type,
-        scope: mockTemplate.scope,
-      });
-    }
-  }, [isEditMode]);
+  // ---------------- PERMISSIONS ----------------
+  const canManage =
+    user?.is_super_admin || user?.role === "ADMIN";
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  if (!canManage) {
+    return <div className="alert alert-danger">Access Denied</div>;
+  }
+
+  if (isEdit && !template) {
+    return <div className="alert alert-danger">Template not found</div>;
+  }
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (isEditMode) {
-      console.log("Updating template:", form);
-    } else {
-      console.log("Creating template:", form);
-    }
+    console.log({
+      name,
+      key,
+      type,
+      scope,
+      content,
+      mode: isEdit ? "EDIT" : "CREATE",
+    });
 
     navigate("/");
   };
 
   return (
-    <Card>
-      <Card.Body>
-        <h4 className="mb-4">
-          {isEditMode ? "Edit Template" : "Create Template"}
-        </h4>
+    <div className="card shadow-sm">
+      <div className="card-header">
+        <h5 className="mb-0">
+          {isEdit ? "Edit Template" : "Create Template"}
+        </h5>
+      </div>
 
-        <Form onSubmit={handleSubmit}>
-          {/* Template Name */}
-          <Form.Group className="mb-3">
-            <Form.Label>Template Name</Form.Label>
-            <Form.Control
-              name="name"
-              value={form.name}
-              onChange={handleChange}
+      <div className="card-body">
+        <form onSubmit={handleSubmit}>
+          {/* Name */}
+          <div className="mb-3">
+            <label className="form-label">Template Name</label>
+            <input
+              className="form-control"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               required
             />
-          </Form.Group>
+          </div>
 
-          {/* Template Key – Only in Create */}
-          {!isEditMode && (
-            <Form.Group className="mb-3">
-              <Form.Label>Template Key</Form.Label>
-              <Form.Control
-                name="key"
-                value={form.key}
-                onChange={handleChange}
-                required
-              />
-            </Form.Group>
-          )}
+          {/* Key */}
+          <div className="mb-3">
+            <label className="form-label">Template Key</label>
+            <input
+              className="form-control"
+              value={key}
+              onChange={(e) => setKey(e.target.value)}
+              disabled={isEdit}
+              required
+            />
+          </div>
 
-          {/* Template Type */}
-          <Form.Group className="mb-3">
-            <Form.Label>Template Type</Form.Label>
-
-            {isEditMode ? (
-              <div>
-                <Badge bg="secondary">{form.type}</Badge>
-              </div>
+          {/* Type */}
+          <div className="mb-3">
+            <label className="form-label">Template Type</label>
+            {isEdit ? (
+              <span className="badge bg-secondary">{type}</span>
             ) : (
-              <Form.Select
-                name="type"
-                value={form.type}
-                onChange={handleChange}
-                required
+              <select
+                className="form-select"
+                value={type}
+                onChange={(e) => setType(e.target.value)}
               >
-                <option value="">Select Type</option>
                 <option value="EMAIL">EMAIL</option>
                 <option value="SMS">SMS</option>
                 <option value="PUSH">PUSH</option>
-              </Form.Select>
+              </select>
             )}
-          </Form.Group>
+          </div>
 
           {/* Scope */}
-          <Form.Group className="mb-4">
-            <Form.Label>Scope</Form.Label>
-
-            {isEditMode ? (
-              <div>
-                <Badge bg="dark">{form.scope}</Badge>
-              </div>
+          <div className="mb-3">
+            <label className="form-label">Scope</label>
+            {isEdit ? (
+              <span className="badge bg-dark">{scope}</span>
             ) : (
-              <Form.Select
-                name="scope"
-                value={form.scope}
-                onChange={handleChange}
-                required
+              <select
+                className="form-select"
+                value={scope}
+                onChange={(e) => setScope(e.target.value)}
               >
-                <option value="">Select Scope</option>
                 {user.is_super_admin && (
-                  <option value="SYSTEM">SYSTEM</option>
+                  <option value={SCOPES.SYSTEM}>SYSTEM</option>
                 )}
-                <option value="ORG">ORG</option>
-                <option value="USER">USER</option>
-              </Form.Select>
+                <option value={SCOPES.ORG}>ORG</option>
+                <option value={SCOPES.USER}>USER</option>
+              </select>
             )}
-          </Form.Group>
-
-          <div className="d-flex gap-2">
-            <Button type="submit">
-              {isEditMode ? "Update Template" : "Create Template"}
-            </Button>
-
-            <Button
-              variant="secondary"
-              onClick={() => navigate("/")}
-            >
-              Cancel
-            </Button>
           </div>
-        </Form>
-      </Card.Body>
-    </Card>
+
+          {/* Content */}
+          <div className="mb-3">
+            <label className="form-label">Template Content</label>
+            <textarea
+              className="form-control"
+              rows="6"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              required
+            />
+          </div>
+
+          <button className="btn btn-primary">
+            {isEdit ? "Update Template" : "Create Template"}
+          </button>
+        </form>
+      </div>
+    </div>
   );
 }
 
